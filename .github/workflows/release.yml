@@ -68,13 +68,47 @@ jobs:
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: 发布到 npm(显式 --tag latest)
-        if: steps.probe.outputs.published == 'false'
+      # 没有凭据时**明确跳过**并说明原因,而不是留一次红的 CI。
+      # 一条因为"密钥没配"而红的流水线,和一条真正坏掉的发布流水线,在列表上长得一模一样——
+      # 所以这里把"缺凭据"与"发布失败"分开表达。
+      - name: 是否具备 npm 发布凭据
+        id: auth
+        shell: bash
+        run: |
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "mode=token" >> "$GITHUB_OUTPUT"
+            echo "使用 NPM_TOKEN 发布"
+          elif [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+            echo "mode=oidc" >> "$GITHUB_OUTPUT"
+            echo "使用 OIDC(trusted publishing)发布"
+          else
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 发布到 npm(需要凭据)
+        if: steps.probe.outputs.published == 'false' && steps.auth.outputs.mode != 'none'
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -e
-          # npm publish 时若带了 NODE_AUTH_TOKEN 就用它;没带则走 OIDC(trusted publishing)。
-          # ⚠️ publishConfig.tag 不可靠,必须显式给 --tag。
+          # publishConfig.tag 不可靠,必须显式给 --tag。
           npm publish --tag latest
+
+      - name: 无凭据 —— 跳过发布并说明
+        if: steps.probe.outputs.published == 'false' && steps.auth.outputs.mode == 'none'
+        run: |
+          echo "::notice title=npm publish skipped::未配置发布凭据,已跳过 npm 发布(不是失败)。"
+          echo "本仓未配置 NPM_TOKEN,本机 OIDC 也不可用。"
+          echo "两条正路:1) 在仓库 secrets 里加 NPM_TOKEN(Automation token,不要用会话 token);"
+          echo "          2) 在 npm 包页面把本仓库配成 trusted publisher,工作流即走 OIDC。"
+          echo "在此之前,tarball 仍随 Release 资产发布,用户可用 dsh plugin add <tarball-url> 安装。"
+
+      - name: 附上预构建 tarball(不依赖 npm)
+        shell: bash
+        run: |
+          set -e
+          npm pack
+          ls -la ./*.tgz
