@@ -1,8 +1,13 @@
 name: test
 
-# 每次推 main 与每个 PR 都跑。三道守卫的顺序不能换:
+# 每次推 main 与每个 PR 都跑。
+#
+# 三道核心守卫的顺序不能换:
 #   1 测试与检查数 → 2 双语配对哈希 → 3 文档数字复核
 # （参考仓真的因为「改了数字忘重录配对哈希」让四条矩阵全红过一次。）
+#
+# 另有守卫 4/5（shell 语法、版本一致性）与**守卫 6（真装真启动）**。
+# 守卫 6 是唯一能抓「插件装得上但起不来」的检查，见文件末尾那一步的注释。
 on:
   push:
     branches: [main]
@@ -81,3 +86,23 @@ jobs:
           console.log('packlist OK: ' + files.length + ' 个文件, 包版本 ' + manifest.version);
           "
           rm -f packlist.json
+
+      # ── 守卫 6：真装真启动 ────────────────────────────────────────────
+      # 上面五道跑的都是纯逻辑与配置，**没有一道把插件真装进一个 harness 里跑一遍**。
+      # 这条缝是真的：1.0.0 装得上、73 项单测全绿、`--dump-config` exit 0 / stderr 0 字节 /
+      # 571 行合成树 —— 然后启动时把整个 profile 打下来，因为 cordis.patch.yml 的行 `name`
+      # 还写着改名前的旧包名：
+      #
+      #   Cannot find package 'dsh-workspace-rewind' imported from …/profiles/web/
+      #
+      # `--dump-config` 只**合成**配置、从不 apply 插件，所以它对一个起不来的 profile
+      # 报告了一棵干净的树（行名是否解析得到，在 dump 里不留任何痕迹）。
+      # 只有真 `--port` 启动能验这一条 —— 所以 CI 必须自己起一次。
+      - name: 安装 pnpm（`dsh plugin add` 会转调它，dsh 不自带）
+        run: npm install -g pnpm@12.4.2
+
+      - name: 为守卫 6 安装 harness（跑完即弃，不进 package.json）
+        run: npm install --no-save --no-audit --no-fund @deepseek-ai/dsh@${{ matrix.dsh }}
+
+      - name: 守卫 6 — 真装真启动（本仓库唯一能抓「装不上」的检查）
+        run: node tools/verify-boot.mjs --port 31860

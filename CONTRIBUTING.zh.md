@@ -20,9 +20,13 @@ node tools/verify-translation-pairing.mjs --write
 node tools/verify-doc-numbers.mjs
 bash -n install.sh && bash -n uninstall.sh
 node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
+node tools/verify-boot.mjs --port 31860        # 需要 pnpm 与一份 harness 安装
 ```
 
 改动没跑绿全部守卫就不算完成;而且要先用一份注入已知缺陷的副本确认对应的守卫**真的会红**。
+
+最后一道是唯一把插件装进一次性 `DSH_HOME` 再启动的守卫。别的守卫都抓不到
+「装得上,然后启动时把整个 profile 打下来」这件事。
 
 ## 文档规则
 

@@ -1,3 +1,24 @@
+# Bundle patch: what `dsh plugin --profile <name> add dsh-zcode-rewind` mounts.
+#
+# 行的 `id` 是本插件在构成里的行标识符，必须等于 lib/index.js 导出的 `name`
+# （`workspace-rewind`）；它只是个内部短名，**不是**包名。
+#
+# 行的 `name` 是**包名**，加载器把它当模块说明符、**从 profile 目录**解析。
+# 所以它必须逐字等于 package.json 的 `name`。搞错的后果不是"少个功能"，
+# 而是整个 profile 起不来：
+#
+#   Error: dsh: plugin tree failed to load: … failed to import loader entry
+#          workspace-rewind (dsh-workspace-rewind):
+#          Cannot find package 'dsh-workspace-rewind' imported from …/profiles/web/
+#
+# 本仓库真的踩过：包从 `dsh-workspace-rewind` 改名为 `dsh-zcode-rewind` 时漏了这一行。
+# 2026-09-21 实测（一次性 DSH_HOME，tarball 与 link: 两个场景）：`plugin add` exit 0、
+# `--dump-config` exit 0 / 571 行 / **stderr 0 字节**，看着完全健康 —— 然后真启动
+# exit 1 / stderr 7413 字节 / 无监听 URL。`--dump-config` 只合成配置、不 apply 插件，
+# 行名解析失败时它连痕迹都不留（没有 `packageDir`，也没有 `__dshPluginOwner`）。
+#
+# ⇒ 改名时**四处一起核**：package.json 的 name / 仓库名 / 这里的 name / 目录名。
+# ⇒ 守卫是 `tools/verify-boot.mjs`（真装真启动），已接进 CI —— 它存在的原因就是这一条。
 - insert:
     - id: workspace-rewind
-      name: 'dsh-workspace-rewind'
+      name: 'dsh-zcode-rewind'

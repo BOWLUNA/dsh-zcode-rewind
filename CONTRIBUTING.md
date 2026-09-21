@@ -20,10 +20,14 @@ node tools/verify-translation-pairing.mjs --write
 node tools/verify-doc-numbers.mjs
 bash -n install.sh && bash -n uninstall.sh
 node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
+node tools/verify-boot.mjs --port 31860        # needs pnpm and a harness install
 ```
 
 A change is not finished until every guard is green, and until you have confirmed the relevant guard
 can actually fail — run it against a copy with a known defect injected.
+
+The boot guard is the only one that installs the plugin into a throwaway `DSH_HOME` and starts it.
+Nothing else catches "installs cleanly, then takes the profile down at boot".
 
 ## Documentation rules
 

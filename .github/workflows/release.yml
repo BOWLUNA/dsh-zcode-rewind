@@ -1,6 +1,10 @@
 name: release
 
-# 打 v* tag 触发。先跑三道守卫,再发布到 npm。
+# 打 v* tag 触发。先跑守卫(含「真装真启动」),再发布到 npm,最后建 GitHub Release。
+#
+# 两条产物是**分开表达**的：npm 有没有发出去，与仓库首页有没有 Release，互不连累。
+# npm 缺凭据时走「明确跳过 + 打印 notice」路径（不留红流水线），
+# 而建 Release 那一步带 `if: always()`，所以即使 publish 失败，Release 照样建出来。
 #
 # 认证两种方式(参考仓实测):
 #   1. 首选 **npm Trusted Publishing**(OIDC):工作流里**不设** NODE_AUTH_TOKEN,
@@ -41,6 +45,25 @@ jobs:
         run: |
           node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
           node tools/verify-version-consistency.mjs --dsh 0.1.5-rc.2
+
+      # 发出去的版本必须真起得来 —— 在**两条**声明线各起一次。
+      # 理由：1.0.0 曾经装得上、单测全绿、`--dump-config` 干净，却因为
+      # cordis.patch.yml 的行 `name` 是改名前的旧包名而让整个 profile 起不来。
+      # 前五道守卫一道都看不见这件事，`--dump-config` 也看不见（它不 apply 插件）。
+      - name: 安装 pnpm 与 harness(守卫 6 需要真启动)
+        run: |
+          npm install -g pnpm@12.4.2
+          npm install --no-save --no-audit --no-fund @deepseek-ai/dsh@0.1.6-alpha.2
+
+      - name: 守卫 6 — 真装真启动(两条实测线各一次)
+        shell: bash
+        run: |
+          set -e
+          for v in 0.1.6-alpha.2 0.1.5-rc.2; do
+            echo "===== 守卫 6 @ dsh $v ====="
+            npm install --no-save --no-audit --no-fund "@deepseek-ai/dsh@$v"
+            node tools/verify-boot.mjs --port 31860
+          done
 
       - name: tag 与 package.json 版本必须一致
         shell: bash
@@ -109,9 +132,54 @@ jobs:
           echo "          2) 在 npm 包页面把本仓库配成 trusted publisher,工作流即走 OIDC。"
           echo "在此之前,tarball 仍随 Release 资产发布,用户可用 dsh plugin add <tarball-url> 安装。"
 
-      - name: 附上预构建 tarball(不依赖 npm)
+      # ── 建 GitHub Release 并附上预构建 tarball ─────────────────────────
+      #
+      # 为什么必须有这一步：没有它，打了 tag 之后**仓库首页的 Releases 面板一动不动**,
+      # 看起来像什么都没发生 —— 所有版本记录都只存在于 CI 的日志里。本仓库 1.0.0 的
+      # Release 就是手工用 API 建的，不是工作流建的（工作流只发 npm）。dsh-custom-mode
+      # 与 dsh-zcode-farm 都因此返工过。
+      #
+      # `if: always()` 不是装饰，有实测支撑：farm 1.0.1 那一次 npm publish 步骤 failure,
+      # 紧随其后的建 Release 步骤仍然 success。反过来也成立 —— 「npm 没发出去」不该
+      # 连累「仓库首页有没有 Release」，两件事的表达必须分开。
+      #
+      # 顺带修掉一个死代码：原先这里只有 `npm pack` + `ls`，名字叫「附上 tarball」
+      # 却什么都没附。现在它真的上传。
+      - name: 建 GitHub Release（含预构建 tarball）
+        if: always()
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
+          tag="${GITHUB_REF_NAME}"
+          case "$tag" in
+            v*) ;;
+            *) echo "不是 tag 触发（ref=$tag），跳过建 Release"; exit 0 ;;
+          esac
+
           npm pack
-          ls -la ./*.tgz
+          tgz=$(ls ./*.tgz | head -1)
+          echo "tarball: $tgz ($(stat -c%s "$tgz") B)"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag 已存在 —— 只补传资产（重跑安全）"
+            gh release upload "$tag" "$tgz" --clobber
+          else
+            # 正文取 CHANGELOG 里该版本那一节；取不到就退化成一句事实性说明。
+            awk -v v="${tag#v}" '
+              {
+                line = $0
+                sub(/[ \t]+$/, "", line)
+                if (line == "## " v) { flag = 1; next }
+                if (flag && substr(line, 1, 3) == "## ") exit
+                if (flag) print
+              }
+            ' CHANGELOG.md > /tmp/release-notes.md
+            if [ ! -s /tmp/release-notes.md ]; then
+              printf 'Release %s. See CHANGELOG.md.\n' "$tag" > /tmp/release-notes.md
+            fi
+            gh release create "$tag" --title "$tag" --notes-file /tmp/release-notes.md "$tgz"
+          fi
+
+          echo "Release URL: $(gh release view "$tag" --json url -q .url)"

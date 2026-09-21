@@ -12,17 +12,22 @@ node tools/verify-translation-pairing.mjs --write
 node tools/verify-doc-numbers.mjs
 bash -n install.sh && bash -n uninstall.sh
 node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
+node tools/verify-boot.mjs --port 31860        # needs pnpm and a harness install
 
 # bump the version in package.json, both READMEs, SECURITY.md and both CHANGELOGs,
 # then re-run guards 2 and 3 — the numbers guard names every place that drifted.
 git add -A && git commit -m "fix(x.y.z): …"
 git tag -a vx.y.z -m "vx.y.z" && git push origin vx.y.z
 gh run list --repo BOWLUNA/dsh-zcode-rewind --limit 6
+gh release view vx.y.z --json tagName,assets     # the Releases panel must actually move
 ```
 
 ## After the workflow reports success
 
 - A green publish job does **not** mean the package reached npm: check `npm view <pkg> version` and allow a couple of minutes.
+- Confirm the **Releases panel moved**. The workflow builds the Release and attaches the prebuilt
+  tarball; if the panel is unchanged, only npm ran. The `gh release create` step is `if: always()`
+  on purpose, so a skipped or failed npm publish must not stop it.
 - Open the published tarball and confirm this round's strings are inside it — CI green only means "something was uploaded".
 - Write a release record: version, commit, tag, workflow run id, propagation time, tarball fingerprints, leftovers.
 

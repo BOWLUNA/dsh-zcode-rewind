@@ -33,6 +33,16 @@ dependencies** and no build step. Everything under `lib/` is plain ESM for Node 
    different provider — that changes fleet-wide behaviour for everyone.
 6. **The row id `workspace-rewind` must stay unique** and equal the plugin's exported `name`.
    A duplicate id is a **startup hard failure**.
+   The row's `name` field is a *different* thing: it is the **package name**, which the loader
+   resolves as a module specifier **from the profile directory** while applying the tree — so it
+   must match `package.json`'s `name` exactly. Renaming the package and missing that one field ships
+   a plugin that installs cleanly, passes 73 unit tests and produces `--dump-config` with exit 0 and
+   an empty stderr, and then **takes the whole profile down at boot**:
+   `Cannot find package 'dsh-workspace-rewind' imported from …/profiles/web/`.
+   `--dump-config` can never catch this (it composes configuration without applying plugins, and a
+   failed row resolution leaves no trace in the dump). `tools/verify-boot.mjs` exists for it, and
+   **on rename, check four places at once**: `package.json` name / repository name / the row `name`
+   here / directory name.
 7. **Secret-named paths are never content-captured.** `.env`, `*.pem`, `*.key`, `id_rsa*`,
    `.credentials.yaml` and friends are recorded as *events* (`secret: true`, `h: null`). Never
    store their bytes, and never let a restore plan delete them: in the ledger fold, a `null` hash
@@ -56,10 +66,15 @@ node tools/verify-translation-pairing.mjs --write    # 2) re-record bilingual pa
 node tools/verify-doc-numbers.mjs                    # 3) documented numbers vs the real run
 bash -n install.sh && bash -n uninstall.sh           # 4) shell syntax
 node tools/verify-version-consistency.mjs --dsh <version>   # 5) requires --dsh; bare run exits 1 by design
+node tools/verify-boot.mjs --port 31860              # 6) installs into a throwaway DSH_HOME and boots it
 ```
 
 Two rules: **run all of them** (missing one turns CI red), and **verify the guards can fail** —
 run them against a mutated copy with a known defect injected before trusting them.
+
+Guard 6 is the only one that applies the plugin to a real harness. Guards 1–5 all pass on a plugin
+that cannot start; see invariant 6 for the measured case. It needs `pnpm` on PATH and a harness in
+`node_modules/@deepseek-ai/dsh` (CI installs both).
 
 Current reality: **2 suites, 73 checks**. If you change either number, update `README.md`,
 `README.zh.md`, `AGENTS.md`, `CONTRIBUTING.md` and `test/README.md`, then re-run guards 2 and 3.
