@@ -1,0 +1,62 @@
+{
+  "name": "dsh-workspace-rewind",
+  "version": "0.1.0",
+  "description": "Per-tool-call workspace checkpoints for DeepSeek Harness: captures every file mutation (bash/pwsh included, not just write/edit), stores content-addressed blobs, restores selectively with line-level diff preview, and every restore is itself undoable.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "node tools/smoke.mjs",
+    "prepublishOnly": "npm test"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "dsh": ">=0.1.0-rc.8 <0.2.0"
+  },
+  "dsh": {
+    "runtime": "host",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.8 <0.2.0",
+    "@deepseek-ai/dsh-home-paths": ">=0.1.0-rc.8 <0.2.0",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "dependencies": {},
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "docs",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BOWLUNA/dsh-workspace-rewind.git"
+  },
+  "homepage": "https://github.com/BOWLUNA/dsh-workspace-rewind",
+  "bugs": {
+    "url": "https://github.com/BOWLUNA/dsh-workspace-rewind/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "checkpoint",
+    "rewind",
+    "undo",
+    "redo",
+    "rollback",
+    "snapshot",
+    "workspace",
+    "time-travel"
+  ]
+}
