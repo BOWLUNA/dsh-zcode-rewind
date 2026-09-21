@@ -71,21 +71,24 @@ jobs:
       # 没有凭据时**明确跳过**并说明原因,而不是留一次红的 CI。
       # 一条因为"密钥没配"而红的流水线,和一条真正坏掉的发布流水线,在列表上长得一模一样——
       # 所以这里把"缺凭据"与"发布失败"分开表达。
+      #
+      # ⚠️ 判据只看 NPM_TOKEN。**不要**拿 `ACTIONS_ID_TOKEN_REQUEST_URL` 当 OIDC 判据:
+      # 只要 workflow 声明了 `id-token: write`,这个变量就总是存在,于是"有凭据"是误判,
+      # 真去 publish 会得到 ENEEDAUTH(实测踩到过一次)。
+      # 配好 trusted publishing 之后,把这一行的条件改成"或 mode=oidc"即可。
       - name: 是否具备 npm 发布凭据
         id: auth
         shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
             echo "mode=token" >> "$GITHUB_OUTPUT"
-            echo "使用 NPM_TOKEN 发布"
-          elif [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
-            echo "mode=oidc" >> "$GITHUB_OUTPUT"
-            echo "使用 OIDC(trusted publishing)发布"
+            echo "检测到 NPM_TOKEN,将执行发布"
           else
             echo "mode=none" >> "$GITHUB_OUTPUT"
+            echo "未检测到 NPM_TOKEN"
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 发布到 npm(需要凭据)
         if: steps.probe.outputs.published == 'false' && steps.auth.outputs.mode != 'none'

@@ -67,14 +67,17 @@ jobs:
         shell: bash
         run: |
           set -e
+          # 先在 shell 里出 JSON,再交给 node 解析。
+          # 不要在 node 里 execFileSync('npm', …):Windows 上 npm 是 npm.cmd,
+          # 无 shell 直接 spawn 会 ENOENT —— CI 实测踩到过。
+          npm pack --dry-run --json > packlist.json
           node -e "
-          const { execFileSync } = require('node:child_process');
           const manifest = require('./package.json');
-          const raw = execFileSync('npm', ['pack', '--dry-run', '--json'], { encoding: 'utf8' });
-          const files = JSON.parse(raw)[0].files.map((f) => f.path);
+          const files = require('./packlist.json')[0].files.map((f) => f.path);
           const required = ['package.json', 'cordis.patch.yml', 'lib/index.js', 'install.sh', 'uninstall.sh', 'AGENTS.md', 'README.md', 'README.zh.md'];
           const missing = required.filter((f) => !files.includes(f));
           if (missing.length > 0) { console.error('packlist 缺少: ' + missing.join(', ')); process.exit(1); }
           if (files.some((f) => f.startsWith('node_modules/') || f.startsWith('.git/'))) { console.error('packlist 混入了不该发布的目录'); process.exit(1); }
-          console.log('packlist OK: ' + files.length + ' 个文件');
+          console.log('packlist OK: ' + files.length + ' 个文件, 包版本 ' + manifest.version);
           "
+          rm -f packlist.json
