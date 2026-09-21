@@ -1,85 +1,126 @@
-# dsh-workspace-rewind
+# dsh-zcode-rewind
 
-**English** | [简体中文](./README.zh-CN.md)
+[English](./README.md) | [简体中文](./README.zh.md)
 
-Per-tool-call workspace checkpoints for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai) — **captures every file mutation, including shell side effects**, with content-addressed storage, line-level diff preview, selective restore, and undoable restores.
+> Per-tool-call workspace checkpoints for DeepSeek Harness — every file mutation, shell side effects included.
 
 ## Why
 
-Every checkpoint system we could find — Claude Code `/rewind`, Cursor, and all four rollback plugins in the DSH market — only tracks changes made through file-editing tools. The [Claude Code docs state it explicitly](https://code.claude.com/docs/en/checkpointing):
+Every checkpoint system we could find only tracks changes made through file-editing tools.
+The Claude Code documentation says it outright: "Checkpointing does not track files modified by
+Bash commands" — `rm file.txt`, `mv old.txt new.txt`, `cp source.txt dest.txt` cannot be undone
+through rewind. Cline does catch command side effects, but by committing the whole repository to a
+shadow git repository after every tool call, and its own documentation warns that large repositories
+suffer significant storage use and slowdown.
 
-> **Bash command changes not tracked** — Checkpointing does not track files modified by Bash commands. For example `rm file.txt`, `mv old.txt new.txt`, `cp source.txt dest.txt` — these cannot be undone through rewind.
+DSH's own market is no different: all four rollback plugins we read (`dsh-rewind-plugin`,
+`@anionex/dsh-turn-rewind`, `dsh-undo-savepoint`, `dsh-recall-plugin`) either parse only the
+`file_path` argument of `write`/`edit`, or snapshot at turn boundaries — so a `sed -i` mid-turn is
+invisible to all of them.
 
-Cline solves this with a shadow-git commit of the whole repo after *every* tool call, and [its own docs admit](https://docs.cline.bot/core-workflows/checkpoints) large repositories suffer *significant storage and slowdown*.
+## What it captures
 
-`dsh-workspace-rewind` closes the gap with a different mechanism: a stat-only workspace fingerprint diff around each tool call. Any mutation is seen — `bash`, `pwsh`, `write`, `edit`, MCP tools, subagents — while the cost stays O(files) stat work plus content reads *only for files that actually changed*.
+- Every mutating tool call: `bash`, `pwsh`, `write`, `edit`, MCP tools, subagent tools.
+- Deletions, creations and modifications — with a revertible previous-content hash for each path.
+- Content-addressed file contents, deduplicated across sessions and workspaces.
+- A durable ledger of who changed what, in entry order, that survives restarts.
 
 ## How it works
 
-```
-tools/execute (before) ──> mark pending, capture baseline on first call
+```text
+tools/execute (before) ──> mark pending; first capture writes a full baseline
         │  (the tool runs: bash rm/mv/sed, write, edit, MCP …)
 tools/post-execute ─────> fingerprint diff → read changed files →
                           content-addressed blobs (sha-256, deduped) →
                           append-only ledger record
 ```
 
-- **Storage** lives in `$DSH_HOME/workspace-rewind/` — never inside your workspace, never touches your git repo. Layout: `blobs/<h[:2]>/<sha256>` + `ledger.jsonl`.
-- **Restore** has two explicit semantics:
-  - `revert` — undo exactly one record's delta (the "undo what just broke" case),
-  - `asof` — return the whole workspace to the state recorded at a checkpoint (folds the ledger forward *and* resolves files created after the target).
-- **Every restore is protected**: before applying, the affected paths' current state is stored as a *rescue* record. `rewind_undo` restores the rescue — repeated calls toggle undo/redo. Restores are crash-safe (rescue is written before any byte changes).
-- **Safety by construction**: symlink/hardlink contents are never followed or written through; `.git`/`node_modules` and friends are excluded; secret-looking files (`.env`, `*.pem`, `*.key`, …) and oversized files are recorded as *events* with no content — they can never be clobbered by a restore plan, only reported.
-- **Zero runtime dependencies.** No git CLI, no native modules, no bundler. Pure ESM on Node ≥ 20.
+The fingerprint is `path → size + mtime` for the whole workspace. Capture costs one `O(files)` stat
+walk plus content reads **only for files that actually changed** — measured at 88 ms for 3000 files,
+against 2936 ms for the initial full-content baseline, i.e. 86 ms for a no-change capture.
 
 ## Install
 
 ```bash
-dsh plugin --profile web add dsh-workspace-rewind
+dsh plugin --profile web add dsh-zcode-rewind
 ```
 
-Restart DSH (bundle plugins bind at assembly). Verify: `dsh --profile web --dump-config | grep workspace-rewind`.
+Restart DSH — a bundle plugin binds during startup assembly. Verify the composed tree with
+`dsh --profile web --dump-config | grep workspace-rewind`. The store lives outside your workspace,
+at `$DSH_HOME/workspace-rewind/`, and never touches your git repository.
 
 ## Tools
 
 | Tool | What it does |
 | --- | --- |
-| `rewind_now` | Create a manual checkpoint right now (e.g. before a risky operation) |
-| `rewind_list` | Recent records, newest first: id, time, tool, `+A ~M -D`, sample paths |
-| `rewind_diff` | Restore plan + **line-level unified diff**, changes nothing |
-| `rewind_restore` | Restore with `mode=revert` (undo one record) or `mode=asof` (point-in-time). `apply=false` (default) = dry run |
-| `rewind_undo` | Undo the last restore (toggle = undo/redo) |
-| `rewind_status` | Store stats: records, blobs, bytes, quota, config |
+| `rewind_now` | Create a manual checkpoint right now, e.g. before a risky operation |
+| `rewind_list` | Recent records, newest first: id, time, tool, `+added ~modified -deleted`, sample paths |
+| `rewind_diff` | Restore plan plus a line-level unified diff; changes nothing |
+| `rewind_restore` | `mode=revert` undoes one record; `mode=asof` returns to a point in time |
+| `rewind_undo` | Undo the last restore — repeating it toggles undo/redo |
+| `rewind_status` | Store statistics: records, blobs, bytes, quota, active configuration |
 
-`rewind_restore` and `rewind_undo` default to a **dry run** — the agent must pass `apply=true`, which keeps a human (or the agent echoing the plan first) in the loop.
-
-## Configuration (inline config in `cordis.patch.yml`)
+## Configuration
 
 ```yaml
 - insert:
     - id: workspace-rewind
-      name: 'dsh-workspace-rewind'
+      name: 'dsh-zcode-rewind'
       config:
         capture: all            # all | fileTools | off
-        maxFileBytes: 8388608   # per-file content cap (larger = event only)
+        maxFileBytes: 8388608   # larger files are recorded as events only
         maxFiles: 20000         # per-walk file cap
-        maxTotalBytes: 536870912  # store quota; LRU eviction of unreferenced blobs
+        maxTotalBytes: 536870912  # store quota; oldest unreferenced blobs are evicted
         keepRecords: 500        # ledger trim threshold
-        excludes: ['.git', 'node_modules', 'dist', 'build']   # merged with defaults
-        secretNames: ['.env', '*.pem', '*.key']               # merged with defaults
+        excludes: ['.git', 'node_modules', 'dist']
+        secretNames: ['.env', '*.pem', '*.key']
 ```
 
-## Verification
+## Restore semantics
 
-`npm test` runs an offline smoke suite (52 assertions) covering capture, bash side effects, dedup, quota GC, asof/revert restore, rescue, undo toggling, secret-file safety, and the built-in Myers diff. No DSH installation required.
+| Mode | Meaning |
+| --- | --- |
+| `revert` | Undo exactly the delta of one record — the "undo what just broke" case |
+| `asof` | Return the workspace to the state recorded at a checkpoint, folding the ledger and resolving files created after the target |
 
-Real-harness verification performed on `0.1.6-alpha.2` (headless profile, isolated `DSH_HOME`): bash-caused file mutation captured with a revertible `prev` hash; revert restored the damaged file on disk; `rewind_undo` toggled the restore back; zero loader errors. See `docs/DESIGN.md` for the competitive evidence and `docs/VERIFICATION.md` for the raw transcripts.
+## Safety
+
+- Restores are dry-run by default; `apply=true` is required to touch the filesystem.
+- Every restore first writes a rescue record, so `rewind_undo` can reverse it — repeatedly.
+- Restore and rescue records are exempt from quota eviction: the undo trail is never evicted.
+- Secret-named and oversized files are recorded as events only, and a restore plan keeps them
+  untouched rather than guessing their history.
+
+## Compatibility
+
+Developed and verified on DSH `0.1.5-rc.2` (desktop harness) and `0.1.6-alpha.2` (WSL). The declared
+range is:
+
+```text
+>=0.1.5-alpha.1 || >=0.1.6-alpha.1
+```
+
+Host APIs used: `ctx.tools.register` with `defineTool`, `ctx.inject(['fs'], …)` and the
+`tools/execute` / `tools/post-execute` / `tools/result` events, `ctx.systemPrompt.section`,
+`ctx.logger`, plus `resolveDshHome()` from `@deepseek-ai/dsh-home-paths`. Peers are resolved through a
+multi-anchor `createRequire`, so a `link:`-installed copy works without a local `node_modules`.
+
+## Tests and guards
+
+```bash
+node test/run.mjs                                    # 2 suites, 73 checks — no DSH required
+node tools/verify-translation-pairing.mjs --write     # bilingual pair hashes
+node tools/verify-doc-numbers.mjs                     # documented numbers vs the real run
+node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
+```
 
 ## Known limitations
 
-- External edits made *between* tool calls are attributed to the next captured call (same class of limitation as Cline's approach).
-- Files whose content was never captured (secret-named, oversized, or deleted before first capture) cannot be content-restored; plans keep them untouched and say so.
-- The fingerprint walk is O(workspace files); huge monorepos should raise `excludes` or use `capture: fileTools`.
+- External edits made between tool calls are attributed to the next captured call, the same class of
+  limitation as a whole-tree shadow commit.
+- Files whose content was never captured — secret-named, oversized, or deleted before first capture —
+  cannot be content-restored; plans keep them as they are and say so.
+- Massive monorepos need a larger `excludes` list or `capture: fileTools`.
 
 ## License
 

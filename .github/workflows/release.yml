@@ -1,0 +1,80 @@
+name: release
+
+# 打 v* tag 触发。先跑三道守卫,再发布到 npm。
+#
+# 认证两种方式(参考仓实测):
+#   1. 首选 **npm Trusted Publishing**(OIDC):工作流里**不设** NODE_AUTH_TOKEN,
+#      由 `id-token: write` 换 token。需要在 npm 包页面把本仓库配成 trusted publisher。
+#   2. 退回 **Automation token**(仓库 secret `NPM_TOKEN`)。
+#      ⚠️ **不要用会话 token**:会话 token 会走 staged publish + 2FA,表现为
+#      「publish 成功但 latest 不动」。
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 守卫 1/3 — 测试
+        run: node test/run.mjs
+
+      - name: 守卫 2/3 — 双语配对哈希
+        run: node tools/verify-translation-pairing.mjs
+
+      - name: 守卫 3/3 — 文档数字
+        run: node tools/verify-doc-numbers.mjs
+
+      - name: 版本一致性(两条实测线都要覆盖)
+        run: |
+          node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
+          node tools/verify-version-consistency.mjs --dsh 0.1.5-rc.2
+
+      - name: tag 与 package.json 版本必须一致
+        shell: bash
+        run: |
+          set -e
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag v$tag 与 package.json $pkg 不一致" >&2
+            exit 1
+          fi
+
+      # 该版本在 npm 上已存在就跳过 —— 让 release 幂等,重跑不会炸。
+      - name: 该版本是否已发布
+        id: probe
+        shell: bash
+        run: |
+          set -e
+          pkg=$(node -p "require('./package.json').name")
+          ver=$(node -p "require('./package.json').version")
+          if npm view "$pkg@$ver" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "$pkg@$ver 已在 npm 上,跳过发布"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 发布到 npm(显式 --tag latest)
+        if: steps.probe.outputs.published == 'false'
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -e
+          # npm publish 时若带了 NODE_AUTH_TOKEN 就用它;没带则走 OIDC(trusted publishing)。
+          # ⚠️ publishConfig.tag 不可靠,必须显式给 --tag。
+          npm publish --tag latest

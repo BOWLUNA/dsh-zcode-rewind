@@ -17,6 +17,7 @@
 import { promises as fsp } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
 import { fingerprint, diffFingerprints } from '../lib/fingerprint.js';
 import { Store } from '../lib/store.js';
 import { CaptureEngine } from '../lib/capture.js';
@@ -32,8 +33,7 @@ const CAP = {
   runs: 20,
 };
 
-const ROOT = process.env.PROBE06_STRESS_DIR
-  ?? join(process.cwd(), '.workbuddy', '06-scratch', `stress-${process.pid}`);
+const ROOT = process.env.REWIND_STRESS_DIR ?? process.env.PROBE06_STRESS_DIR ?? join(tmpdir(), `dsh-zcode-rewind-stress-${process.pid}`);
 const STORE_DIR = join(ROOT, 'store');
 const WS = join(ROOT, 'ws');
 const WS2 = join(ROOT, 'ws2');   // [2-4]/[6]/[7] 用的小工作区,避免复用 [1] 的 3000 文件夹具
@@ -191,7 +191,7 @@ console.log(`\n[7] 并发捕获(${CAP.concurrency} 路,上限内)`);
   ok(typeof engine2.after === 'function', '并发后引擎仍可正常构造(状态未污染)');
 }
 
-console.log(`\n结果:${pass} 通过,${fail} 失败`);
+console.log(`\n结果: ${pass} 通过, ${fail} 失败`);
 const total = (await fsp.readdir(ROOT, { recursive: true }).catch(() => [])).length;
 console.log(`清理:删除 ${ROOT}(${total} 个目录项)`);
 await fsp.rm(ROOT, { recursive: true, force: true });

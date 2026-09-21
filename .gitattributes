@@ -1,0 +1,16 @@
+# 一律 LF:仓库在 Windows 与 WSL 两侧开发,CRLF 会让双语配对哈希与
+# `node --check` 的结果随检出平台漂移。
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.tgz binary
+
+# 锁定这几个文件的语言,避免 GitHub 统计与 diff 渲染跑偏。
+*.md text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf

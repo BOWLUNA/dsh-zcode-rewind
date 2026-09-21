@@ -1,0 +1,32 @@
+name: 功能建议
+description: 想要新的能力或改现有行为
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本项目的两条自律：**只做能验证的事**、**不夸大描述**。
+        所以"我希望能 X"后面请补一句"X 做完之后，什么现象能证明它成了"。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到的实际问题
+      description: 先说问题，再说方案。方案可以只写个方向。
+    validations:
+      required: true
+  - type: textarea
+    id: howtoverify
+    attributes:
+      label: 怎么算做成了
+      description: 可执行的验证方式（命令 + 期望输出）。
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: 范围确认
+      options:
+        - label: 我知道这是宿主插件，不涉及 DSH 自身改动
+          required: false
+        - label: 我愿意提 PR（不确定实现细节也可以先开 issue 讨论）
+          required: false

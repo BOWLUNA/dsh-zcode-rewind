@@ -1,0 +1,38 @@
+name: Bug 报告
+description: 行为与文档不符、报错、崩溃
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请**不要**粘贴任何密钥或凭据（`DEEPSEEK_API_KEY`、`~/.dsh/.credentials.yaml` 的内容等）。
+        需要引用时只写变量名。
+  - type: input
+    id: versions
+    attributes:
+      label: 版本
+      description: 包版本 + dsh 版本 + Node 版本 + 系统（含 WSL/Windows 哪一种）
+      placeholder: 'dsh-zcode-rewind 0.1.1 / dsh 0.1.6-alpha.2 / Node 24 / WSL Ubuntu'
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 一句话结论 + 你期望发生什么。有原始输出就贴原始输出。
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 尽可能给出命令。涉及恢复的请贴 `rewind_diff` 的输出（去掉路径里的私人信息）。
+    validations:
+      required: true
+  - type: textarea
+    id: store
+    attributes:
+      label: 快照库状态
+      description: '`rewind_status` 的输出（含记录数、blob 占用、配额）。'
+    validations:
+      required: false

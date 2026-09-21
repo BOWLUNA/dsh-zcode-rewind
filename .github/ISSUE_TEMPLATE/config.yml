@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 安全漏洞（不要开公开 issue）
+    url: https://github.com/BOWLUNA/dsh-zcode-rewind/security/advisories/new
+    about: 请按 SECURITY.md 的说明走私密渠道报告。
+  - name: 用法与排错
+    url: https://github.com/BOWLUNA/dsh-zcode-rewind/blob/main/docs/TROUBLESHOOTING.md
+    about: 装不上、工具不出现、恢复计划里出现「保持现状」——先看这里。

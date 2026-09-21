@@ -151,6 +151,6 @@ const fp2 = await fingerprint(ws, { excludes: DEFAULTS.excludes, maxFiles: 1000,
 ok(!fp2.map.has('.git/HEAD'), '.git 被排除');
 ok(fp2.map.has('new.txt'), '普通文件在指纹里');
 
-console.log(`\n结果:${pass} 通过,${fail} 失败`);
+console.log(`\n结果: ${pass} 通过, ${fail} 失败`);
 await rm(root, { recursive: true, force: true });
 process.exit(fail === 0 ? 0 : 1);
