@@ -1,6 +1,6 @@
 {
   "name": "dsh-workspace-rewind",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Per-tool-call workspace checkpoints for DeepSeek Harness: captures every file mutation (bash/pwsh included, not just write/edit), stores content-addressed blobs, restores selectively with line-level diff preview, and every restore is itself undoable.",
   "type": "module",
   "main": "lib/index.js",
@@ -30,9 +30,15 @@
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "peerDependenciesMeta": {
-    "@deepseek-ai/dsh-tools": { "optional": true },
-    "@deepseek-ai/dsh-home-paths": { "optional": true },
-    "@deepseek-ai/schemastery": { "optional": true }
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-home-paths": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    }
   },
   "dependencies": {},
   "files": [
