@@ -4,6 +4,22 @@
 
 > 格式:最新在上。每次发布都写清改了什么、为什么、怎么验证的。
 
+## 1.0.0
+
+首个公开发布版。0.1.x 是开发期的递增版本,保留在下方作为历史记录。
+
+### 包含
+
+- 逐工具调用的工作区检查点:一次工具调用前后发生的每一处文件改动都会被记录,包括由 shell 命令而非文件编辑工具造成的改动。
+- 工作区之外的内容寻址存储;两种恢复模式(`revert` 撤销单条记录、`asof` 回到某个时间点);行级 diff 预览,默认 dry run。
+- 每次恢复前先写 rescue 保护记录,配 `rewind_undo`,所以恢复本身可逆。
+- 密钥样式与超限文件只记事件;恢复计划保持它们原样,不去猜它们的历史。
+
+### 兼容性
+
+- 在 dsh `0.1.5-rc.2`(Windows 桌面版 harness)与 `0.1.6-alpha.2`(WSL)上开发并验证过。
+- 用到的宿主 API:`ctx.tools.register` 配 `defineTool`、`fs` 域的 `tools/execute` 与 `tools/post-execute` 事件、`ctx.systemPrompt.section`、`ctx.logger`、`resolveDshHome`。
+
 ## 0.1.1
 
 - **修复**:配额 GC 只统计**未被引用**的 blob,于是「所有 blob 都被引用」的库完全无视

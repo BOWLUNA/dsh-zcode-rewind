@@ -12,7 +12,7 @@ body:
     attributes:
       label: 版本
       description: 包版本 + dsh 版本 + Node 版本 + 系统（含 WSL/Windows 哪一种）
-      placeholder: 'dsh-zcode-rewind 0.1.1 / dsh 0.1.6-alpha.2 / Node 24 / WSL Ubuntu'
+      placeholder: 'dsh-zcode-rewind 1.0.0 / dsh 0.1.6-alpha.2 / Node 24 / WSL Ubuntu'
     validations:
       required: true
   - type: textarea

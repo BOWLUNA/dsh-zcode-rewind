@@ -57,7 +57,7 @@ A `--patch` probe called the tools through the real registry (`ctx.tools.get(nam
 
 - `Store.gc()` used the byte total of *unreferenced* blobs as "used", so a store whose blobs were all
   referenced ignored the quota — 932 KB under a 64 KB quota.
-- Fixed in 0.1.1: evict orphans, then drop the oldest non-restore records and rewrite the ledger.
+- Fixed before the first public release (1.0.0): evict orphans, then drop the oldest non-restore records and rewrite the ledger.
 - Reproduction: `node test/stress.test.mjs`, section `[6]`.
 
 ## Not measured

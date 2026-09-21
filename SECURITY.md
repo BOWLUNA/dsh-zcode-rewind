@@ -8,8 +8,8 @@
 
 | Version | Supported |
 | --- | --- |
-| `0.1.1` | Supported |
-| `< 0.1.1` | Not supported — please update |
+| `1.0.0` | Supported |
+| `< 1.0.0` | Not supported — please update |
 
 ## Reporting a vulnerability
 
