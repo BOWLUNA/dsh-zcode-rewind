@@ -194,6 +194,27 @@ if (PNPM === null) {
   )
 }
 
+/**
+ * 从 dsh 的入口推断 harness 安装根 —— 即那个含 `node_modules/@deepseek-ai/*` 的目录。
+ *
+ * 为什么需要它：插件的 peer 解析是**多锚点**的（`lib/index.js:16-37`），第二锚点就是
+ * `$DSH_ROOT`。本守卫已经知道 harness 在哪（它自己就是照 `--dsh-bin` / `$DSH_INSTALL` /
+ * `<repo>/node_modules` / PATH 找到的），却**没把这个事实告诉被启动的进程**。
+ *
+ * 实测的后果（干净 clone，2026-09-22）：三个锚点全部落空 ——
+ * ① 自身位置往上没有 node_modules（clone 是干净的）；② `$DSH_ROOT` 没设；
+ * ③ 从 `process.execPath`（本机托管 node，不是 dsh 的发行布局）反推不出来。
+ * 于是插件按设计**降级**：捕获钩子照常工作，跳过工具注册，往 stderr 打 266 字节警告 ——
+ * **断言 D 因此变红，而那不是插件坏了，是守卫没把环境交代清楚。**
+ */
+function installRootOf(entry) {
+  const parts = resolve(entry).split(sep)
+  const i = parts.lastIndexOf('node_modules')
+  return i === -1 ? null : parts.slice(0, i).join(sep)
+}
+
+const DSH_ROOT_FOR_CHILD = installRootOf(DSH.entry)
+
 // ── 一次性 DSH_HOME（第一件事就是断言它不是真实的那一个）────────
 const HOME = mkdtempSync(join(tmpdir(), 'dsh-rewind-boot-'))
 {
@@ -204,7 +225,15 @@ const HOME = mkdtempSync(join(tmpdir(), 'dsh-rewind-boot-'))
     process.exit(2)
   }
 }
-const ENV = { ...process.env, DSH_HOME: HOME, NO_COLOR: '1', FORCE_COLOR: '0' }
+const ENV = {
+  ...process.env,
+  DSH_HOME: HOME,
+  // 把「我们找到的 harness 安装根」交代给子进程 —— 插件的第二锚点就是它。
+  // 不传的话，在干净的 clone 里插件会降级并在 stderr 打警告（见 installRootOf 的注释）。
+  ...(DSH_ROOT_FOR_CHILD === null ? {} : { DSH_ROOT: DSH_ROOT_FOR_CHILD }),
+  NO_COLOR: '1',
+  FORCE_COLOR: '0',
+}
 
 function cleanup() {
   if (KEEP) {

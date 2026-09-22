@@ -31,18 +31,36 @@ against all five criteria and prints what each one records:
 ## Where this sits next to ZCode
 
 This plugin studies the same problem ZCode solves and ports it to DSH. The honest version of that
-relationship — including the part where nothing was taken:
+relationship — including the part where nothing was taken, **and the part you cannot re-check from
+here**:
 
-| ZCode | what was taken | where this goes further | evidence |
+| ZCode | what was taken | where this goes further | can you re-check it from this repo? |
 | --- | --- | --- | --- |
-| `zcode/apps/zcode-cli/packages/adapters/src/plugins/atomic-directory.ts` — atomic directory activation with `finalize` / `rollback`, used when installing plugin sources | nothing | not the same problem: that rolls back an **install**, not a workspace | `grep -n "rollback" …/atomic-directory.ts` |
-| no workspace-level checkpoint subsystem in `zcode/apps` | the *idea*, not the code | **ZCode has no counterpart here** — the capture loop, the store layout and the restore semantics are this repository's own work | `grep -rli "snapshot" zcode/apps` → 232 files; the ones inspected are session and UI snapshots, not a workspace store |
+| `zcode/apps/zcode-cli/packages/adapters/src/plugins/atomic-directory.ts` — atomic directory activation with `finalize` / `rollback`, used when installing plugin sources | nothing | not the same problem: that rolls back an **install**, not a workspace | **Not yet proven from this repo.** The ZCode mirror is not vendored here, so the only honest statement is "read on 2026-09-22, and you cannot re-run it from a clone of this repository" |
+| no workspace-level checkpoint subsystem in `zcode/apps` | the *idea*, not the code | **ZCode has no counterpart here** — the capture loop, the store layout and the restore semantics are this repository's own work | **Not yet proven from this repo** — same reason |
 
 Derivation credit: the idea of checkpointing an agent's workspace is studied from
 [`zai-org/ZCode`](https://github.com/zai-org/ZCode) and
 [`zai-org/GLM-skills`](https://github.com/zai-org/GLM-skills). **Nothing in the install path, the
 tests, or the acceptance criteria depends on any third-party vendor key or service** — model
 capability, where this plugin needs it at all, goes through the host's own `ctx.llm`.
+
+### Reproducing the comparison
+
+The **first** table above is the one you can genuinely re-run; the second one says out loud that it
+cannot be re-checked from a clone. That distinction is deliberate — a claim you cannot re-run is
+not evidence.
+
+```bash
+git clone https://github.com/BOWLUNA/dsh-zcode-rewind && cd dsh-zcode-rewind
+node test/run.mjs                  # 2 suites / 73 checks — needs no DSH install
+node tools/compare-capture.mjs     # ← the evidence for the first table
+node tools/boot-check.mjs --port 31860   # optional; needs pnpm + a dsh install (see below)
+```
+
+`compare-capture` replays one shell-made mutation against five criteria, prints what each one
+records, and **asserts the three claims the table makes** — so it exits non-zero the day this
+README and the code disagree.
 
 ## Why
 

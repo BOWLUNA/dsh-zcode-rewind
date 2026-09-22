@@ -30,17 +30,32 @@ dsh plugin --profile web add dsh-zcode-rewind
 ## 与 ZCode 的关系
 
 本插件研究的是 ZCode 所解的同一个问题,把它移植到 DSH。下面是这段关系的如实版本——
-包括「什么都没取」的那一行:
+包括「什么都没取」的那一行,**也包括你从这里复核不了的那部分**:
 
-| ZCode | 取到了什么 | 本插件进一步在哪 | 证据 |
+| ZCode | 取到了什么 | 本插件进一步在哪 | 从本仓库能复核吗 |
 | --- | --- | --- | --- |
-| `zcode/apps/zcode-cli/packages/adapters/src/plugins/atomic-directory.ts`——装插件源码时的原子目录切换,有 `finalize` / `rollback` | 没有 | 不是同一个问题:那个回滚的是**一次安装**,不是工作区 | `grep -n "rollback" …/atomic-directory.ts` |
-| `zcode/apps` 里没有工作区级的检查点子系统 | 借的是**想法**,不是代码 | **ZCode 在这一块没有对应物**——捕获循环、库的布局、恢复语义都是本仓库自己的活儿 | `grep -rli "snapshot" zcode/apps` → 232 个文件;抽查到的都是会话与界面快照,不是工作区存储 |
+| `zcode/apps/zcode-cli/packages/adapters/src/plugins/atomic-directory.ts`——装插件源码时的原子目录切换,有 `finalize` / `rollback` | 没有 | 不是同一个问题:那个回滚的是**一次安装**,不是工作区 | **从本仓库推不出来。** ZCode 镜像没有随仓库提供,所以唯一诚实的说法是「2026-09-22 读过,而你无法从本仓库的 clone 里复跑它」 |
+| `zcode/apps` 里没有工作区级的检查点子系统 | 借的是**想法**,不是代码 | **ZCode 在这一块没有对应物**——捕获循环、库的布局、恢复语义都是本仓库自己的活儿 | **从本仓库推不出来**——同上 |
 
 出处致谢:给 agent 的工作区做检查点这个想法,学习自
 [`zai-org/ZCode`](https://github.com/zai-org/ZCode) 与
 [`zai-org/GLM-skills`](https://github.com/zai-org/GLM-skills)。**安装路径、测试与验收条件里
 没有任何一处依赖第三方厂商的 key 或服务**——本插件需要模型能力时一律走宿主自己的 `ctx.llm`。
+
+### 怎么自己复核这张表
+
+上面**第一张**表是你真能复跑的;第二张则明说它无法从 clone 里复核。这个区别是刻意保留的——
+复核不了的主张不算证据。
+
+```bash
+git clone https://github.com/BOWLUNA/dsh-zcode-rewind && cd dsh-zcode-rewind
+node test/run.mjs                  # 2 套件 / 73 项检查——不需要装 DSH
+node tools/compare-capture.mjs     # ← 第一张表的证据
+node tools/boot-check.mjs --port 31860   # 可选;需要 pnpm 与一份 dsh 安装(见下)
+```
+
+`compare-capture` 会把一次 shell 造成的改动喂给五套判据、打印各自记录到什么,
+并**断言表里那三条主张**——所以哪天文档与代码各说各话,它会以非零退出。
 
 ## 为什么做这个
 
