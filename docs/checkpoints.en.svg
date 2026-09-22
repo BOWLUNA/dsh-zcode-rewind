@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="392" viewBox="0 0 920 392" role="img" aria-label="dsh-zcode-rewind: a per-tool-call checkpoint loop">
+  <title>dsh-zcode-rewind — per-tool-call workspace checkpoints</title>
+
+  <!-- paper -->
+  <rect width="920" height="392" fill="#FAF9F5"/>
+
+  <!-- faint halftone band, hand-drawn feel -->
+  <g fill="#DDD8C8">
+    <circle cx="404" cy="96" r="1.6"/><circle cx="424" cy="96" r="1.6"/><circle cx="444" cy="96" r="1.6"/>
+    <circle cx="464" cy="96" r="1.6"/><circle cx="484" cy="96" r="1.6"/><circle cx="504" cy="96" r="1.6"/>
+    <circle cx="524" cy="96" r="1.6"/><circle cx="404" cy="112" r="1.6"/><circle cx="424" cy="112" r="1.6"/>
+    <circle cx="444" cy="112" r="1.6"/><circle cx="464" cy="112" r="1.6"/><circle cx="484" cy="112" r="1.6"/>
+    <circle cx="504" cy="112" r="1.6"/><circle cx="524" cy="112" r="1.6"/>
+  </g>
+
+  <!-- header -->
+  <text x="34" y="46" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="23" font-weight="700" fill="#2E2E2B">dsh-zcode-rewind</text>
+  <text x="34" y="70" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#77776F">per-tool-call workspace checkpoints for DeepSeek Harness</text>
+  <path d="M34 80 C 130 82, 240 78, 348 81" stroke="#C9C3B0" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+
+  <!-- row 1: tool call -> fingerprint diff -> store -->
+  <rect x="34" y="118" width="188" height="78" rx="7" fill="#FFFFFF" stroke="#4A4A45" stroke-width="1.5"/>
+  <text x="48" y="143" font-family="ui-monospace, monospace" font-size="12.5" font-weight="700" fill="#2E2E2B">a tool call</text>
+  <text x="48" y="163" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">bash · sed -i …</text>
+  <text x="48" y="181" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">write · edit · MCP</text>
+
+  <path d="M228 157 L 268 157" stroke="#7D8C6B" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M262 152 L 270 157 L 262 162" stroke="#7D8C6B" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="276" y="118" width="300" height="78" rx="7" fill="#F2EFE6" stroke="#4A4A45" stroke-width="1.5"/>
+  <text x="292" y="143" font-family="ui-monospace, monospace" font-size="12.5" font-weight="700" fill="#2E2E2B">stat-only fingerprint diff</text>
+  <text x="292" y="163" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">before / after every call — never</text>
+  <text x="292" y="180" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">reads file bodies to find the delta</text>
+  <text x="292" y="194" font-family="ui-monospace, monospace" font-size="10.5" fill="#7D8C6B">88 ms walk · 3000 files</text>
+
+  <path d="M582 157 L 622 157" stroke="#7D8C6B" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M616 152 L 624 157 L 616 162" stroke="#7D8C6B" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="630" y="118" width="256" height="78" rx="7" fill="#FFFFFF" stroke="#4A4A45" stroke-width="1.5"/>
+  <text x="646" y="143" font-family="ui-monospace, monospace" font-size="12.5" font-weight="700" fill="#2E2E2B">content-addressed store</text>
+  <text x="646" y="163" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">$DSH_HOME/workspace-rewind</text>
+  <text x="646" y="181" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">outside the workspace, outside git</text>
+
+  <!-- down arrows -->
+  <path d="M128 200 L 128 238" stroke="#7D8C6B" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M123 232 L 128 240 L 133 232" stroke="#7D8C6B" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M758 200 L 758 238" stroke="#7D8C6B" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M753 232 L 758 240 L 763 232" stroke="#7D8C6B" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- row 2: workspace <- -> restore -->
+  <rect x="34" y="246" width="188" height="72" rx="7" fill="#FFFFFF" stroke="#4A4A45" stroke-width="1.5"/>
+  <text x="48" y="270" font-family="ui-monospace, monospace" font-size="12.5" font-weight="700" fill="#2E2E2B">your workspace</text>
+  <text x="48" y="289" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">note.txt  ·  junk.txt</text>
+  <text x="48" y="306" font-family="ui-monospace, monospace" font-size="10.5" fill="#B0836A">changed by the shell too</text>
+
+  <rect x="630" y="246" width="256" height="72" rx="7" fill="#F2EFE6" stroke="#4A4A45" stroke-width="1.5"/>
+  <text x="646" y="270" font-family="ui-monospace, monospace" font-size="12.5" font-weight="700" fill="#2E2E2B">restore</text>
+  <text x="646" y="289" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">revert one record  ·  asof a moment</text>
+  <text x="646" y="306" font-family="ui-monospace, monospace" font-size="10.5" fill="#7D8C6B">dry run by default · rescue before every restore</text>
+
+  <!-- dashed link between row2 boxes -->
+  <path d="M228 282 L 622 282" stroke="#C9C3B0" stroke-width="1.3" fill="none" stroke-dasharray="5 5" stroke-linecap="round"/>
+
+  <!-- footer facts -->
+  <path d="M34 340 C 200 342, 420 338, 600 341" stroke="#E2DCCB" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+  <text x="34" y="364" font-family="ui-monospace, monospace" font-size="11" fill="#77776F">6 tools · 2 suites / 73 checks · zero runtime dependencies · 86 ms no-change capture</text>
+</svg>

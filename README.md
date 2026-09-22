@@ -2,7 +2,47 @@
 
 [English](./README.md) | [简体中文](./README.zh.md)
 
+[![test](https://github.com/BOWLUNA/dsh-zcode-rewind/actions/workflows/test.yml/badge.svg)](https://github.com/BOWLUNA/dsh-zcode-rewind/actions/workflows/test.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-7D8C6B?style=flat-square)](./LICENSE)
+[![dsh](https://img.shields.io/badge/dsh-0.1.5--alpha.1%20%7C%7C%200.1.6--alpha.1-4A4A45?style=flat-square)](./package.json)
+[![node](https://img.shields.io/badge/node-%3E%3D20-4A4A45?style=flat-square)](./package.json)
+
 > Per-tool-call workspace checkpoints for DeepSeek Harness — every file mutation, shell side effects included.
+
+```bash
+dsh plugin --profile web add dsh-zcode-rewind
+```
+
+![a checkpoint is taken around every tool call; a restore is itself undoable](./docs/checkpoints.en.svg)
+
+### What this catches that the other rewind plugins do not
+
+Four plugins in this market solve a neighbouring problem. The difference is not a matter of taste —
+it is one decision each, and `node tools/compare-capture.mjs` replays the same shell-made mutation
+against all five criteria and prints what each one records:
+
+| what the others do | what this does instead | evidence |
+| --- | --- | --- |
+| `dsh-rewind-plugin` 0.12.2 reads `args.file_path` off write/edit calls, so a `sed -i` — which has no such argument — never appears | a stat-only fingerprint diff around **every** tool call, so a mutation made by the shell is exactly as visible as one made by a file tool | `node tools/compare-capture.mjs` |
+| `@anionex/dsh-turn-rewind` 0.3.8 snapshots at **turn boundaries**, so a mutation made mid-turn is not in this round's record | the diff is taken per tool call, not per turn | same command |
+| `dsh-undo-savepoint` 0.4.9 keeps a tool whitelist and does not cover ordinary workspace files | covers the workspace by default — only `.git` and `node_modules` are excluded | same command |
+| `dsh-recall-plugin` 2.3.24 sees the change but restores at **whole-tree** granularity | records the path set of each individual change, and `revert` undoes exactly one record | same command |
+
+## Where this sits next to ZCode
+
+This plugin studies the same problem ZCode solves and ports it to DSH. The honest version of that
+relationship — including the part where nothing was taken:
+
+| ZCode | what was taken | where this goes further | evidence |
+| --- | --- | --- | --- |
+| `zcode/apps/zcode-cli/packages/adapters/src/plugins/atomic-directory.ts` — atomic directory activation with `finalize` / `rollback`, used when installing plugin sources | nothing | not the same problem: that rolls back an **install**, not a workspace | `grep -n "rollback" …/atomic-directory.ts` |
+| no workspace-level checkpoint subsystem in `zcode/apps` | the *idea*, not the code | **ZCode has no counterpart here** — the capture loop, the store layout and the restore semantics are this repository's own work | `grep -rli "snapshot" zcode/apps` → 232 files; the ones inspected are session and UI snapshots, not a workspace store |
+
+Derivation credit: the idea of checkpointing an agent's workspace is studied from
+[`zai-org/ZCode`](https://github.com/zai-org/ZCode) and
+[`zai-org/GLM-skills`](https://github.com/zai-org/GLM-skills). **Nothing in the install path, the
+tests, or the acceptance criteria depends on any third-party vendor key or service** — model
+capability, where this plugin needs it at all, goes through the host's own `ctx.llm`.
 
 ## Why
 

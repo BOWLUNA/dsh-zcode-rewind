@@ -2,7 +2,45 @@
 
 [English](./README.md) | **简体中文**
 
+[![test](https://github.com/BOWLUNA/dsh-zcode-rewind/actions/workflows/test.yml/badge.svg)](https://github.com/BOWLUNA/dsh-zcode-rewind/actions/workflows/test.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-7D8C6B?style=flat-square)](./LICENSE)
+[![dsh](https://img.shields.io/badge/dsh-0.1.5--alpha.1%20%7C%7C%200.1.6--alpha.1-4A4A45?style=flat-square)](./package.json)
+[![node](https://img.shields.io/badge/node-%3E%3D20-4A4A45?style=flat-square)](./package.json)
+
 > 面向 DeepSeek Harness 的逐工具调用工作区检查点——连 shell 副作用一起捕获。
+
+```bash
+dsh plugin --profile web add dsh-zcode-rewind
+```
+
+![每一次工具调用前后都取一次检查点;每次恢复本身也能被撤销](./docs/checkpoints.zh.svg)
+
+### 这件事上,它比同类的回滚插件多做了什么
+
+市场里另有四个插件在解一个相邻的问题。区别不是口味问题,而是各自的一个决定——
+`node tools/compare-capture.mjs` 会把**同一次 shell 造成的改动**喂给五套判据,并打印各自记录到了什么:
+
+| 它们怎么做 | 本插件怎么做 | 证据 |
+| --- | --- | --- |
+| `dsh-rewind-plugin` 0.12.2 从 write/edit 调用里取 `args.file_path`——而 `sed -i` 没有这个参数,于是永远不出现 | 每次工具调用前后做一次**只 stat 的指纹差分**,shell 造成的改动与文件工具造成的改动一样可见 | `node tools/compare-capture.mjs` |
+| `@anionex/dsh-turn-rewind` 0.3.8 在 **turn 边界**打快照,所以 turn 中途的改动不进这一轮记录 | 差分的粒度是每次工具调用,不是每个 turn | 同上 |
+| `dsh-undo-savepoint` 0.4.9 有工具白名单,且不覆盖工作区里的普通文件 | 默认覆盖整个工作区——只排除 `.git` 与 `node_modules` | 同上 |
+| `dsh-recall-plugin` 2.3.24 看得见改动,但还原粒度是**整棵树** | 记录每一次改动各自的路径集,`revert` 精确抵消一条记录 | 同上 |
+
+## 与 ZCode 的关系
+
+本插件研究的是 ZCode 所解的同一个问题,把它移植到 DSH。下面是这段关系的如实版本——
+包括「什么都没取」的那一行:
+
+| ZCode | 取到了什么 | 本插件进一步在哪 | 证据 |
+| --- | --- | --- | --- |
+| `zcode/apps/zcode-cli/packages/adapters/src/plugins/atomic-directory.ts`——装插件源码时的原子目录切换,有 `finalize` / `rollback` | 没有 | 不是同一个问题:那个回滚的是**一次安装**,不是工作区 | `grep -n "rollback" …/atomic-directory.ts` |
+| `zcode/apps` 里没有工作区级的检查点子系统 | 借的是**想法**,不是代码 | **ZCode 在这一块没有对应物**——捕获循环、库的布局、恢复语义都是本仓库自己的活儿 | `grep -rli "snapshot" zcode/apps` → 232 个文件;抽查到的都是会话与界面快照,不是工作区存储 |
+
+出处致谢:给 agent 的工作区做检查点这个想法,学习自
+[`zai-org/ZCode`](https://github.com/zai-org/ZCode) 与
+[`zai-org/GLM-skills`](https://github.com/zai-org/GLM-skills)。**安装路径、测试与验收条件里
+没有任何一处依赖第三方厂商的 key 或服务**——本插件需要模型能力时一律走宿主自己的 `ctx.llm`。
 
 ## 为什么做这个
 
