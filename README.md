@@ -112,7 +112,7 @@ node test/run.mjs                                    # 2 suites, 73 checks — n
 node tools/verify-translation-pairing.mjs --write     # bilingual pair hashes
 node tools/verify-doc-numbers.mjs                     # documented numbers vs the real run
 node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
-node tools/verify-boot.mjs --port 31860               # needs pnpm + a harness install
+node tools/boot-check.mjs --port 31860               # needs pnpm + a harness install
 ```
 
 The last guard is the only one that installs the plugin into a throwaway `DSH_HOME` and boots it.

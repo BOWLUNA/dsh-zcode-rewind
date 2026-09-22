@@ -20,7 +20,7 @@ node tools/verify-translation-pairing.mjs --write
 node tools/verify-doc-numbers.mjs
 bash -n install.sh && bash -n uninstall.sh
 node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
-node tools/verify-boot.mjs --port 31860        # 需要 pnpm 与一份 harness 安装
+node tools/boot-check.mjs --port 31860        # 需要 pnpm 与一份 harness 安装
 ```
 
 改动没跑绿全部守卫就不算完成;而且要先用一份注入已知缺陷的副本确认对应的守卫**真的会红**。

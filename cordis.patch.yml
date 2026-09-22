@@ -18,7 +18,7 @@
 # 行名解析失败时它连痕迹都不留（没有 `packageDir`，也没有 `__dshPluginOwner`）。
 #
 # ⇒ 改名时**四处一起核**：package.json 的 name / 仓库名 / 这里的 name / 目录名。
-# ⇒ 守卫是 `tools/verify-boot.mjs`（真装真启动），已接进 CI —— 它存在的原因就是这一条。
+# ⇒ 守卫是 `tools/boot-check.mjs`（真装真启动），已接进 CI —— 它存在的原因就是这一条。
 - insert:
     - id: workspace-rewind
       name: 'dsh-zcode-rewind'

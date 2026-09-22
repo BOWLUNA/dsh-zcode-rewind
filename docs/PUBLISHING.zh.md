@@ -12,7 +12,7 @@ node tools/verify-translation-pairing.mjs --write
 node tools/verify-doc-numbers.mjs
 bash -n install.sh && bash -n uninstall.sh
 node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
-node tools/verify-boot.mjs --port 31860        # 需要 pnpm 与一份 harness 安装
+node tools/boot-check.mjs --port 31860        # 需要 pnpm 与一份 harness 安装
 
 # 升版本号:package.json、两份 README、SECURITY.md、两份 CHANGELOG,
 # 然后重跑第 2、3 道守卫——数字守卫会逐条点名漂移的位置。

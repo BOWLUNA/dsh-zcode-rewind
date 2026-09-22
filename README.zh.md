@@ -107,7 +107,7 @@ node test/run.mjs                                    # 2 个套件,73 项检查�
 node tools/verify-translation-pairing.mjs --write     # 双语配对哈希
 node tools/verify-doc-numbers.mjs                     # 文档数字 vs 真实运行
 node tools/verify-version-consistency.mjs --dsh 0.1.6-alpha.2
-node tools/verify-boot.mjs --port 31860               # 需要 pnpm 与一份 harness 安装
+node tools/boot-check.mjs --port 31860               # 需要 pnpm 与一份 harness 安装
 ```
 
 最后一道守卫是唯一把插件装进一次性 `DSH_HOME` 再启动的。它存在的原因是:1.0.0 装得上、

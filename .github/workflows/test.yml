@@ -99,10 +99,26 @@ jobs:
       # 报告了一棵干净的树（行名是否解析得到，在 dump 里不留任何痕迹）。
       # 只有真 `--port` 启动能验这一条 —— 所以 CI 必须自己起一次。
       - name: 安装 pnpm（`dsh plugin add` 会转调它，dsh 不自带）
-        run: npm install -g pnpm@12.4.2
+        run: npm install -g pnpm@12
 
       - name: 为守卫 6 安装 harness（跑完即弃，不进 package.json）
+        if: matrix.node-version != '20'
         run: npm install --no-save --no-audit --no-fund @deepseek-ai/dsh@${{ matrix.dsh }}
 
       - name: 守卫 6 — 真装真启动（本仓库唯一能抓「装不上」的检查）
-        run: node tools/verify-boot.mjs --port 31860
+        if: matrix.node-version != '20'
+        run: node tools/boot-check.mjs --port 31860
+
+      # 跳过必须带声明：一条静默跳过的守卫，和没有这条守卫是一回事。
+      #
+      # 为什么 node 20 腿跳：**node 20 装不出宿主**，不是本插件的问题。
+      # 实测 `npm install @deepseek-ai/dsh` 在 node 20 上只装入 10 个包、没有 `.bin/dsh`，
+      # 而 node 24 上是 488–520 个（依赖树里 undici / @deepseek-ai/libreoffice-kit /
+      # @earendil-works/pi-ai 要求 >=22.19.0）。本轮首次真跑 CI 时，正是这条腿红：
+      # dsh 静默 exit 0、stdout 与 stderr 都是 0 字节。
+      # 本包的 engines.node 说的是「本包代码能在 node 20 上跑」（守卫 1–5 仍然在 node 20 上跑），
+      # 不是「宿主能在 node 20 上跑」。
+      - name: 守卫 6 跳过声明（本腿装不出宿主）
+        if: matrix.node-version == '20'
+        run: |
+          echo "::warning::本腿（node ${{ matrix.node-version }}）跳过了启动守卫 —— node 20 装不出宿主：npm install @deepseek-ai/dsh 只装入 10 个包、无 .bin/dsh（node 24 上是 488–520 个）。理由与证据见 issues/ENGINES-1.md。"

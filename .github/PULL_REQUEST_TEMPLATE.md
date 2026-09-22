@@ -9,7 +9,7 @@
 - [ ] `node tools/verify-doc-numbers.mjs` 绿（改了文档里的数字 → 三道重跑）
 - [ ] `node tools/verify-version-consistency.mjs --dsh <版本>` 绿
 - [ ] `bash -n install.sh && bash -n uninstall.sh`
-- [ ] `node tools/verify-boot.mjs --port 31860` 绿（真装真启动；需要 pnpm 与一份 harness 安装）
+- [ ] `node tools/boot-check.mjs --port 31860` 绿（真装真启动；需要 pnpm 与一份 harness 安装）
 
 ## 自检
 

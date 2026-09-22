@@ -52,7 +52,7 @@ jobs:
       # 前五道守卫一道都看不见这件事，`--dump-config` 也看不见（它不 apply 插件）。
       - name: 安装 pnpm 与 harness(守卫 6 需要真启动)
         run: |
-          npm install -g pnpm@12.4.2
+          npm install -g pnpm@12
           npm install --no-save --no-audit --no-fund @deepseek-ai/dsh@0.1.6-alpha.2
 
       - name: 守卫 6 — 真装真启动(两条实测线各一次)
@@ -62,7 +62,7 @@ jobs:
           for v in 0.1.6-alpha.2 0.1.5-rc.2; do
             echo "===== 守卫 6 @ dsh $v ====="
             npm install --no-save --no-audit --no-fund "@deepseek-ai/dsh@$v"
-            node tools/verify-boot.mjs --port 31860
+            node tools/boot-check.mjs --port 31860
           done
 
       - name: tag 与 package.json 版本必须一致

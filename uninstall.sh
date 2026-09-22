@@ -46,9 +46,20 @@ run() {
   if [ "$DRY_RUN" -eq 1 ]; then say "  [dry-run] $*"; else say "  \$ $*"; "$@"; fi
 }
 
-# 快照库位置:与 lib/index.js 的解析规则一致 —— <DSH_HOME>/workspace-rewind，
-# DSH_HOME 缺省是 ~/.dsh。桌面版 harness 的 DSH_HOME 在 %APPDATA%\dsh-desktop\harness。
-DSH_HOME_DIR="${DSH_HOME:-$HOME/.dsh}"
+# 快照库位置:与 lib/index.js 的解析规则一致 —— <DSH_HOME>/workspace-rewind。
+#
+# DSH_HOME 的解析顺序：$DSH_HOME → $DSH_INSTALL/harness → ~/.dsh。
+# **不要写死桌面版的位置** —— 2026-09-21 那次 harness 搬迁让所有硬编码路径同时失效
+# （旧地址 %APPDATA%\dsh-desktop\harness 与 C:\BL\AI\DSH Desktop 都已进回收站）。
+# 以后换 harness 位置，只改 DSH_INSTALL 这一个变量：
+#   export DSH_INSTALL="C:/BL/AI/dsh-harness"
+if [ -n "${DSH_HOME:-}" ]; then
+  DSH_HOME_DIR="$DSH_HOME"
+elif [ -n "${DSH_INSTALL:-}" ]; then
+  DSH_HOME_DIR="$DSH_INSTALL/harness"
+else
+  DSH_HOME_DIR="$HOME/.dsh"
+fi
 STORE="$DSH_HOME_DIR/workspace-rewind"
 
 say "dsh-zcode-rewind 卸载"

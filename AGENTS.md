@@ -40,7 +40,7 @@ dependencies** and no build step. Everything under `lib/` is plain ESM for Node 
    an empty stderr, and then **takes the whole profile down at boot**:
    `Cannot find package 'dsh-workspace-rewind' imported from …/profiles/web/`.
    `--dump-config` can never catch this (it composes configuration without applying plugins, and a
-   failed row resolution leaves no trace in the dump). `tools/verify-boot.mjs` exists for it, and
+   failed row resolution leaves no trace in the dump). `tools/boot-check.mjs` exists for it, and
    **on rename, check four places at once**: `package.json` name / repository name / the row `name`
    here / directory name.
 7. **Secret-named paths are never content-captured.** `.env`, `*.pem`, `*.key`, `id_rsa*`,
@@ -66,7 +66,7 @@ node tools/verify-translation-pairing.mjs --write    # 2) re-record bilingual pa
 node tools/verify-doc-numbers.mjs                    # 3) documented numbers vs the real run
 bash -n install.sh && bash -n uninstall.sh           # 4) shell syntax
 node tools/verify-version-consistency.mjs --dsh <version>   # 5) requires --dsh; bare run exits 1 by design
-node tools/verify-boot.mjs --port 31860              # 6) installs into a throwaway DSH_HOME and boots it
+node tools/boot-check.mjs --port 31860              # 6) installs into a throwaway DSH_HOME and boots it
 ```
 
 Two rules: **run all of them** (missing one turns CI red), and **verify the guards can fail** —
