@@ -26,17 +26,21 @@ jobs:
         os: [ubuntu-latest]
         # 20 是保守下限(本包只用标准库),24 是当前开发版本。
         node-version: ['20', '24']
-        dsh: ['0.1.6-alpha.2']
+        # 两条已发布线的当前版本；0.1.7-alpha.2 另在下面单列一条腿。
+        dsh: ['0.1.6-alpha.2', '0.1.5-rc.3']
         include:
           # Windows 是最容易出差异的平台:路径分隔符、symlink 权限、junction/链接形态都不同。
           # 本插件要在 Windows 与 WSL 两侧工作,所以 Windows 必须在矩阵里。
           - os: windows-latest
             node-version: '24'
             dsh: '0.1.6-alpha.2'
-          # 实测过的稳定线(桌面版 harness 用的就是它)。
+          # npm 上 alpha 标签的当前版本。这条线架构变了
+          # （dsh-agent-presets → dsh-agent-preset + dsh-agent-preset-registry），
+          # 而本插件不碰 preset 面，所以只跑守卫 6（真装真启动）而不是全套 ——
+          # 启动能过就说明它没有被那次架构变更波及。
           - os: ubuntu-latest
             node-version: '24'
-            dsh: '0.1.5-rc.2'
+            dsh: '0.1.7-alpha.2'
     steps:
       - uses: actions/checkout@v4
 

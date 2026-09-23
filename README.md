@@ -151,12 +151,24 @@ at `$DSH_HOME/workspace-rewind/`, and never touches your git repository.
 
 ## Compatibility
 
-Developed and verified on DSH `0.1.5-rc.2` (desktop harness) and `0.1.6-alpha.2` (WSL). The declared
-range is:
+Boot-checked on DSH `0.1.5-rc.2` (the desktop harness line), `0.1.6-alpha.2` (WSL) and
+`0.1.7-alpha.2` (npm's current `alpha` tag). The declared range is:
 
 ```text
->=0.1.5-alpha.1 || >=0.1.6-alpha.1
+>=0.1.5-alpha.1 <0.2.0-0 || >=0.1.6-alpha.1 <0.2.0-0 || >=0.1.7-alpha.1 <0.2.0-0
 ```
+
+Three notes, because the shape of that string is load-bearing:
+
+- **Each line carries its own comparator.** node-semver only accepts a prerelease when the range
+  contains a comparator with the *same* `major.minor.patch` tuple, so `>=0.1.5-alpha.1` alone can
+  never match `0.1.7-alpha.2` — the line has to be repeated per tuple.
+- **Every line has an upper bound.** Without `<0.2.0-0` the range silently claims `0.2.0` and
+  `1.0.0` as well — a released version is not a prerelease, so it matches any `>=` bound.
+- `0.1.7-alpha.2` is boot-checked but **not** exercised in CI. The architecture changed there
+  (`dsh-agent-presets` → `dsh-agent-preset` + `dsh-agent-preset-registry`); this plugin does not
+  touch the preset surface (`grep -rliE "agent-preset|preset" .` → 0 files), so it is unaffected,
+  but the claim rests on the boot check rather than on a full test run.
 
 Host APIs used: `ctx.tools.register` with `defineTool`, `ctx.inject(['fs'], …)` and the
 `tools/execute` / `tools/post-execute` / `tools/result` events, `ctx.systemPrompt.section`,

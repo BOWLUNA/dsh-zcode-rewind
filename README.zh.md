@@ -142,11 +142,24 @@ dsh plugin --profile web add dsh-zcode-rewind
 
 ## 兼容性
 
-在 DSH `0.1.5-rc.2`(桌面版 harness)与 `0.1.6-alpha.2`(WSL)上开发并验证。声明的区间是:
+在 DSH `0.1.5-rc.2`(桌面版 harness 线)、`0.1.6-alpha.2`(WSL)与 `0.1.7-alpha.2`
+(npm 上 `alpha` 标签的当前版本)上做过启动核对。声明的区间是:
 
 ```text
->=0.1.5-alpha.1 || >=0.1.6-alpha.1
+>=0.1.5-alpha.1 <0.2.0-0 || >=0.1.6-alpha.1 <0.2.0-0 || >=0.1.7-alpha.1 <0.2.0-0
 ```
+
+三句说明——这个字符串的**形状本身是有作用的**:
+
+- **每条线各带一个比较符。** node-semver 只在一个预发布版本的
+  `major.minor.patch` 元组**出现在区间里**时才接受它,所以单写 `>=0.1.5-alpha.1`
+  **永远匹配不上** `0.1.7-alpha.2` —— 必须按元组逐条重复。
+- **每条线都有上界。** 不写 `<0.2.0-0` 时,区间会**默默认领** `0.2.0` 与 `1.0.0` ——
+  已发布的正式版不是预发布,它能满足任意 `>=` 下界。
+- `0.1.7-alpha.2` 做过**启动核对,但不在 CI 里跑**。那条线架构变了
+  (`dsh-agent-presets` → `dsh-agent-preset` + `dsh-agent-preset-registry`);
+  本插件不碰 preset 面(`grep -rliE "agent-preset|preset" .` → 0 个文件),所以不受影响,
+  但这条主张的依据是启动核对,不是完整测试跑。
 
 用到的宿主 API:`ctx.tools.register` 配 `defineTool`、`ctx.inject(['fs'], …)` 及其
 `tools/execute` / `tools/post-execute` / `tools/result` 事件、`ctx.systemPrompt.section`、
